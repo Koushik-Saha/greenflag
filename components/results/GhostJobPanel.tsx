@@ -8,52 +8,81 @@ interface GhostJobPanelProps {
 }
 
 function probabilityColor(p: number): string {
-  if (p >= 70) return 'text-red-400';
-  if (p >= 40) return 'text-amber-400';
-  return 'text-green-400';
+  if (p >= 70) return 'var(--gf-score-low)';
+  if (p >= 40) return 'var(--gf-score-mid)';
+  return 'var(--gf-score-high)';
+}
+
+function probabilityBarColor(p: number): string {
+  if (p >= 70) return '#EF4444';
+  if (p >= 40) return '#F59E0B';
+  return '#00E887';
 }
 
 export function GhostJobPanel({ analysis }: GhostJobPanelProps) {
   const color = probabilityColor(analysis.ghostProbability);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-6 p-6 rounded-2xl border border-white/10 bg-white/5">
-        <div className="text-center">
-          <span className={`text-5xl font-mono font-bold ${color}`}>{analysis.ghostProbability}%</span>
-          <p className="text-xs text-slate-500 mt-1">Ghost Probability</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 20,
+        padding: '20px 24px',
+        borderRadius: 16,
+        border: '1px solid var(--gf-border)',
+        background: 'var(--gf-card)',
+      }}>
+        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+          <span style={{
+            display: 'block',
+            fontSize: 44, fontWeight: 700,
+            fontFamily: 'var(--font-mono, monospace)',
+            color,
+            lineHeight: 1,
+          }}>
+            {analysis.ghostProbability}%
+          </span>
+          <p style={{ fontSize: 11, color: 'var(--gf-text-tertiary)', marginTop: 4 }}>Ghost Probability</p>
         </div>
-        <div className="flex-1">
-          <div className="h-3 bg-white/10 rounded-full overflow-hidden mb-3">
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 8, background: 'var(--gf-elevated)', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${analysis.ghostProbability}%` }}
               transition={{ duration: 1, ease: 'easeOut' }}
-              className={`h-full rounded-full ${analysis.ghostProbability >= 70 ? 'bg-red-500' : analysis.ghostProbability >= 40 ? 'bg-amber-500' : 'bg-green-500'}`}
+              style={{
+                height: '100%',
+                borderRadius: 4,
+                background: probabilityBarColor(analysis.ghostProbability),
+                boxShadow: `0 0 8px ${probabilityBarColor(analysis.ghostProbability)}80`,
+              }}
             />
           </div>
-          <p className="text-sm text-slate-300">{analysis.recommendation}</p>
+          <p style={{ fontSize: 13, color: 'var(--gf-text-secondary)', lineHeight: 1.5 }}>{analysis.recommendation}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
-          <h3 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3">Red Flags</h3>
-          <div className="space-y-2">
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--gf-score-low)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            Red Flags
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {analysis.signals.filter(s => s.type === 'negative').map((s, i) => (
-              <div key={i} className="flex gap-2 text-sm text-slate-400">
-                <span className="text-red-400">✗</span>
+              <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--gf-text-secondary)' }}>
+                <span style={{ color: 'var(--gf-score-low)', flexShrink: 0 }}>✗</span>
                 {s.text}
               </div>
             ))}
           </div>
         </div>
         <div>
-          <h3 className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-3">Good Signals</h3>
-          <div className="space-y-2">
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--gf-score-high)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            Good Signals
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {analysis.signals.filter(s => s.type === 'positive').map((s, i) => (
-              <div key={i} className="flex gap-2 text-sm text-slate-400">
-                <span className="text-green-400">✓</span>
+              <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--gf-text-secondary)' }}>
+                <span style={{ color: 'var(--gf-score-high)', flexShrink: 0 }}>✓</span>
                 {s.text}
               </div>
             ))}

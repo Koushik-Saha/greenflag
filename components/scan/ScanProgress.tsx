@@ -12,15 +12,9 @@ interface ScanProgressProps {
 }
 
 function scoreColor(value: number): string {
-  if (value >= 80) return 'text-green-400';
-  if (value >= 60) return 'text-amber-400';
-  return 'text-red-400';
-}
-
-function scoreBg(value: number): string {
-  if (value >= 80) return 'bg-green-500/20 border-green-500/30';
-  if (value >= 60) return 'bg-amber-500/20 border-amber-500/30';
-  return 'bg-red-500/20 border-red-500/30';
+  if (value >= 80) return 'var(--gf-score-high)';
+  if (value >= 60) return 'var(--gf-score-mid)';
+  return 'var(--gf-score-low)';
 }
 
 const COPY: Record<string, string> = {
@@ -40,22 +34,24 @@ export function ScanProgress({ scores, overallScore, progress }: ScanProgressPro
   const currentScore = scores.find(s => s.status === 'analyzing');
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center px-6 py-12">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg"
+        style={{ width: '100%', maxWidth: 480 }}
       >
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Analyzing Your Resume</h2>
+        <div style={{ marginBottom: 28, textAlign: 'center' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--gf-text-primary)', marginBottom: 8, letterSpacing: '-0.3px' }}>
+            Analyzing Your Resume
+          </h2>
           <AnimatePresence mode="wait">
             {currentScore && (
               <motion.p
                 key={currentScore.name}
-                initial={{ opacity: 0, y: 5 }}
+                initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="text-sm text-slate-500 font-mono"
+                exit={{ opacity: 0, y: -4 }}
+                style={{ fontSize: 13, color: 'var(--gf-text-tertiary)', fontFamily: 'var(--font-mono, monospace)' }}
               >
                 {COPY[currentScore.name] ?? `Analyzing ${currentScore.label}...`}
               </motion.p>
@@ -63,63 +59,110 @@ export function ScanProgress({ scores, overallScore, progress }: ScanProgressPro
           </AnimatePresence>
         </div>
 
-        <div className="h-1 bg-white/10 rounded-full mb-8 overflow-hidden">
+        {/* Progress bar */}
+        <div style={{ height: 3, background: 'var(--gf-elevated)', borderRadius: 2, marginBottom: 24, overflow: 'hidden' }}>
           <motion.div
-            className="h-full bg-gradient-to-r from-blue-500 to-violet-500"
+            style={{
+              height: '100%',
+              background: 'linear-gradient(90deg, var(--gf-signal), var(--gf-forest))',
+              borderRadius: 2,
+              boxShadow: '0 0 8px rgba(0,232,135,0.5)',
+            }}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ ease: 'easeOut', duration: 0.3 }}
           />
         </div>
 
-        <div className="space-y-2 mb-8">
-          {scores.filter(s => s.name !== 'overall').map((score, i) => (
-            <motion.div
-              key={score.name}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-300 ${
-                score.status === 'complete' && score.value !== undefined
-                  ? scoreBg(score.value)
-                  : score.status === 'analyzing'
-                  ? 'bg-blue-500/10 border-blue-500/30'
-                  : 'bg-white/5 border-white/10'
-              }`}
-            >
-              <div className="w-5 h-5 flex-shrink-0">
-                {score.status === 'complete' ? (
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                ) : score.status === 'analyzing' ? (
-                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-                ) : (
-                  <Clock className="w-5 h-5 text-slate-600" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
+          {scores.filter(s => s.name !== 'overall').map((score, i) => {
+            const isComplete = score.status === 'complete';
+            const isAnalyzing = score.status === 'analyzing';
+
+            return (
+              <motion.div
+                key={score.name}
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: isAnalyzing
+                    ? '1px solid rgba(0,232,135,0.25)'
+                    : isComplete
+                    ? '1px solid var(--gf-border)'
+                    : '1px solid transparent',
+                  background: isAnalyzing
+                    ? 'rgba(0,232,135,0.06)'
+                    : isComplete
+                    ? 'var(--gf-card)'
+                    : 'transparent',
+                  transition: 'all 0.3s',
+                }}
+              >
+                <div style={{ width: 18, height: 18, flexShrink: 0 }}>
+                  {isComplete ? (
+                    <CheckCircle size={18} color="var(--gf-signal)" />
+                  ) : isAnalyzing ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      style={{ display: 'flex' }}
+                    >
+                      <Loader2 size={18} color="var(--gf-signal)" />
+                    </motion.div>
+                  ) : (
+                    <Clock size={18} color="var(--gf-text-muted)" />
+                  )}
+                </div>
+                <span style={{
+                  fontSize: 13, flex: 1,
+                  color: isAnalyzing
+                    ? 'var(--gf-text-primary)'
+                    : isComplete
+                    ? 'var(--gf-text-secondary)'
+                    : 'var(--gf-text-muted)',
+                  fontWeight: isAnalyzing ? 600 : 400,
+                }}>
+                  {score.label}
+                </span>
+                {isComplete && score.value !== undefined && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    style={{
+                      fontFamily: 'var(--font-mono, monospace)',
+                      fontWeight: 700, fontSize: 13,
+                      color: scoreColor(score.value),
+                    }}
+                  >
+                    {score.value}
+                  </motion.span>
                 )}
-              </div>
-              <span className={`text-sm flex-1 ${score.status === 'waiting' ? 'text-slate-600' : 'text-white'}`}>
-                {score.label}
-              </span>
-              {score.status === 'complete' && score.value !== undefined && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className={`font-mono font-bold text-sm ${scoreColor(score.value)}`}
-                >
-                  {score.value}
-                </motion.span>
-              )}
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
 
         {overallScore !== null && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-4 p-6 rounded-2xl border border-white/10 bg-white/5"
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+              padding: 28,
+              borderRadius: 16,
+              border: '1px solid rgba(0,232,135,0.25)',
+              background: 'rgba(0,232,135,0.04)',
+              boxShadow: '0 0 40px rgba(0,232,135,0.1)',
+            }}
           >
             <ScoreRing score={overallScore} size={140} label="Overall Score" />
-            <p className="text-slate-400 text-sm">Analysis complete — redirecting to results...</p>
+            <p style={{ fontSize: 13, color: 'var(--gf-text-tertiary)' }}>
+              Analysis complete — redirecting to results...
+            </p>
           </motion.div>
         )}
       </motion.div>

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UploadZone } from '@/components/scan/UploadZone';
 import { ScanProgress } from '@/components/scan/ScanProgress';
 import { useScanProgress } from '@/hooks/useScanProgress';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, CheckCircle } from 'lucide-react';
 
 type Step = 'upload' | 'jd' | 'profile' | 'scanning';
 
@@ -39,23 +39,84 @@ export default function ScanPage() {
 
   const handleStartScan = async () => {
     setStep('scanning');
-    await startScan({ resumeId, jobDescription: jobDescription || undefined, targetRole: targetRole || undefined, targetCompany: targetCompany || undefined, targetIndustry: targetIndustry || undefined });
+    await startScan({
+      resumeId,
+      jobDescription: jobDescription || undefined,
+      targetRole: targetRole || undefined,
+      targetCompany: targetCompany || undefined,
+      targetIndustry: targetIndustry || undefined,
+    });
   };
 
   if (step === 'scanning') {
     return <ScanProgress scores={scores} overallScore={overallScore} progress={progress} />;
   }
 
+  const steps: Step[] = ['upload', 'jd', 'profile'];
+  const stepIndex = steps.indexOf(step);
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--gf-text-tertiary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.07em',
+    display: 'block',
+    marginBottom: 6,
+  };
+
+  const selectStyle: React.CSSProperties = {
+    width: '100%',
+    background: '#0A1410',
+    border: '1px solid var(--gf-border)',
+    borderRadius: 10,
+    color: 'var(--gf-text-primary)',
+    padding: '11px 16px',
+    fontSize: 14,
+    outline: 'none',
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-xl">
-        <div className="flex items-center gap-2 mb-8">
-          {(['upload', 'jd', 'profile'] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step === s ? 'bg-blue-600 text-white' : ['jd', 'profile'].indexOf(s) < ['upload', 'jd', 'profile'].indexOf(step) ? 'bg-green-500 text-white' : 'bg-white/10 text-slate-500'}`}>
-                {i + 1}
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+      <div style={{ width: '100%', maxWidth: 520 }}>
+        {/* Step indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 36 }}>
+          {steps.map((s, i) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 28, height: 28,
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700,
+                transition: 'all 0.2s',
+                background: step === s
+                  ? 'var(--gf-signal)'
+                  : i < stepIndex
+                  ? 'rgba(0,232,135,0.2)'
+                  : 'var(--gf-elevated)',
+                color: step === s
+                  ? '#060A07'
+                  : i < stepIndex
+                  ? 'var(--gf-signal)'
+                  : 'var(--gf-text-muted)',
+                border: step === s
+                  ? 'none'
+                  : i < stepIndex
+                  ? '1px solid rgba(0,232,135,0.3)'
+                  : '1px solid var(--gf-border)',
+              }}>
+                {i < stepIndex ? <CheckCircle size={14} color="var(--gf-signal)" /> : i + 1}
               </div>
-              {i < 2 && <div className="w-8 h-px bg-white/10" />}
+              {i < 2 && (
+                <div style={{
+                  width: 40, height: 1,
+                  background: i < stepIndex ? 'rgba(0,232,135,0.3)' : 'var(--gf-border)',
+                }} />
+              )}
             </div>
           ))}
         </div>
@@ -63,20 +124,37 @@ export default function ScanPage() {
         <AnimatePresence mode="wait">
           {step === 'upload' && (
             <motion.div key="upload" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h1 className="text-2xl font-bold text-white mb-2">Upload Your Resume</h1>
-              <p className="text-slate-500 mb-8">PDF, DOCX, or Markdown — up to 4MB</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--gf-text-primary)', marginBottom: 6, letterSpacing: '-0.4px' }}>
+                Upload Your Resume
+              </h1>
+              <p style={{ color: 'var(--gf-text-tertiary)', marginBottom: 28, fontSize: 14 }}>
+                PDF, DOCX, or Markdown — up to 4 MB
+              </p>
               <UploadZone onSuccess={handleUploadSuccess} />
             </motion.div>
           )}
 
           {step === 'jd' && (
             <motion.div key="jd" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h1 className="text-2xl font-bold text-white mb-2">Paste Job Description</h1>
-              <p className="text-slate-500 mb-4">Optional — but unlocks 4 more score lenses</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--gf-text-primary)', marginBottom: 6, letterSpacing: '-0.4px' }}>
+                Paste Job Description
+              </h1>
+              <p style={{ color: 'var(--gf-text-tertiary)', marginBottom: 16, fontSize: 14 }}>
+                Optional — unlocks 4 more score lenses
+              </p>
 
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                 {UNLOCKS_WITH_JD.map(s => (
-                  <span key={s} className={`text-xs border rounded-full px-3 py-1 font-mono transition-all ${jobDescription ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-white/10 text-slate-500'}`}>
+                  <span key={s} style={{
+                    fontSize: 11,
+                    fontFamily: 'var(--font-mono, monospace)',
+                    padding: '4px 10px',
+                    borderRadius: 20,
+                    transition: 'all 0.2s',
+                    border: jobDescription ? '1px solid rgba(0,232,135,0.3)' : '1px solid var(--gf-border)',
+                    color: jobDescription ? 'var(--gf-signal)' : 'var(--gf-text-tertiary)',
+                    background: jobDescription ? 'rgba(0,232,135,0.08)' : 'transparent',
+                  }}>
                     {s} {jobDescription ? '✓' : '🔒'}
                   </span>
                 ))}
@@ -87,21 +165,31 @@ export default function ScanPage() {
                 onChange={e => setJobDescription(e.target.value)}
                 placeholder="Paste the full job description here..."
                 rows={10}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-blue-500/50 resize-none"
+                className="gf-input"
+                style={{ resize: 'none', lineHeight: 1.6 }}
               />
 
-              <div className="flex gap-3 mt-6">
+              <div style={{ display: 'flex', gap: 12, marginTop: 20, alignItems: 'center' }}>
                 <button
                   onClick={() => setStep('profile')}
-                  className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                  style={{ fontSize: 13, color: 'var(--gf-text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
-                  Skip (general scan)
+                  Skip
                 </button>
                 <button
                   onClick={() => setStep('profile')}
-                  className="flex items-center gap-2 ml-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-all"
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '10px 20px',
+                    background: 'var(--gf-signal)',
+                    color: '#060A07',
+                    fontSize: 14, fontWeight: 700,
+                    borderRadius: 10, border: 'none', cursor: 'pointer',
+                    transition: 'opacity 0.15s',
+                  }}
                 >
-                  Continue <ChevronRight className="w-4 h-4" />
+                  Continue <ChevronRight size={16} />
                 </button>
               </div>
             </motion.div>
@@ -109,13 +197,17 @@ export default function ScanPage() {
 
           {step === 'profile' && (
             <motion.div key="profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h1 className="text-2xl font-bold text-white mb-2">Quick Profile</h1>
-              <p className="text-slate-500 mb-6">Helps personalize your Salary & OPT/Visa scores</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--gf-text-primary)', marginBottom: 6, letterSpacing: '-0.4px' }}>
+                Quick Profile
+              </h1>
+              <p style={{ color: 'var(--gf-text-tertiary)', marginBottom: 24, fontSize: 14 }}>
+                Helps personalize your Salary &amp; OPT/Visa scores
+              </p>
 
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">Work Authorization</label>
-                  <select value={workAuth} onChange={e => setWorkAuth(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50">
+                  <label style={labelStyle}>Work Authorization</label>
+                  <select value={workAuth} onChange={e => setWorkAuth(e.target.value)} style={selectStyle}>
                     <option value="">Select...</option>
                     <option value="citizen">US Citizen</option>
                     <option value="gc">Green Card</option>
@@ -126,16 +218,26 @@ export default function ScanPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">Target Role</label>
-                  <input value={targetRole} onChange={e => setTargetRole(e.target.value)} placeholder="e.g. Senior Software Engineer" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-blue-500/50" />
+                  <label style={labelStyle}>Target Role</label>
+                  <input
+                    value={targetRole}
+                    onChange={e => setTargetRole(e.target.value)}
+                    placeholder="e.g. Senior Software Engineer"
+                    className="gf-input"
+                  />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">Target Company (optional)</label>
-                  <input value={targetCompany} onChange={e => setTargetCompany(e.target.value)} placeholder="e.g. Google, Stripe, Airbnb..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-blue-500/50" />
+                  <label style={labelStyle}>Target Company (optional)</label>
+                  <input
+                    value={targetCompany}
+                    onChange={e => setTargetCompany(e.target.value)}
+                    placeholder="e.g. Google, Stripe, Airbnb..."
+                    className="gf-input"
+                  />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">Industry</label>
-                  <select value={targetIndustry} onChange={e => setTargetIndustry(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50">
+                  <label style={labelStyle}>Industry</label>
+                  <select value={targetIndustry} onChange={e => setTargetIndustry(e.target.value)} style={selectStyle}>
                     <option value="">Select...</option>
                     <option value="bigtech">Big Tech</option>
                     <option value="fintech">Fintech</option>
@@ -147,24 +249,43 @@ export default function ScanPage() {
                 </div>
               </div>
 
-              {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+              {error && (
+                <p style={{ marginTop: 14, fontSize: 13, color: 'var(--gf-score-low)' }}>{error}</p>
+              )}
 
-              <div className="flex gap-3 mt-8">
-                <button onClick={() => setStep('jd')} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+              <div style={{ display: 'flex', gap: 12, marginTop: 28, alignItems: 'center' }}>
+                <button
+                  onClick={() => setStep('jd')}
+                  style={{ fontSize: 13, color: 'var(--gf-text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
                   Back
                 </button>
                 <button
                   onClick={handleStartScan}
-                  className="flex items-center gap-2 ml-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '12px 24px',
+                    background: 'var(--gf-signal)',
+                    color: '#060A07',
+                    fontSize: 14, fontWeight: 700,
+                    borderRadius: 10, border: 'none', cursor: 'pointer',
+                    boxShadow: '0 0 20px rgba(0,232,135,0.3)',
+                    transition: 'opacity 0.15s',
+                  }}
                 >
-                  Start Scanning <ChevronRight className="w-4 h-4" />
+                  Start Scanning <ChevronRight size={16} />
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <p className="text-center text-xs text-slate-600 mt-8">Scanning: {resumeName}</p>
+        {resumeName && (
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--gf-text-tertiary)', marginTop: 28 }}>
+            Scanning: {resumeName}
+          </p>
+        )}
       </div>
     </div>
   );

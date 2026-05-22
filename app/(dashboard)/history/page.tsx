@@ -1,67 +1,146 @@
 import { getCurrentUser } from '@/lib/actions/user';
 import { getUserScans } from '@/lib/db/queries';
 import Link from 'next/link';
+import { ScanLine } from 'lucide-react';
+
+function scoreColor(score?: number | null): string {
+  if (!score) return 'var(--gf-text-muted)';
+  if (score >= 80) return 'var(--gf-score-high)';
+  if (score >= 60) return 'var(--gf-score-mid)';
+  return 'var(--gf-score-low)';
+}
 
 export default async function HistoryPage() {
   const user = await getCurrentUser();
   if (!user) return null;
   const scans = await getUserScans(user.id, 50);
 
-  const scoreColor = (score?: number | null) => {
-    if (!score) return 'text-slate-500';
-    if (score >= 80) return 'bg-green-500/20 text-green-400';
-    if (score >= 60) return 'bg-amber-500/20 text-amber-400';
-    return 'bg-red-500/20 text-red-400';
-  };
-
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-white mb-2">Scan History</h1>
-      <p className="text-slate-500 mb-8">{scans.length} scan{scans.length !== 1 ? 's' : ''} total</p>
+    <div style={{ padding: '32px', maxWidth: 960 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--gf-text-primary)', letterSpacing: '-0.4px' }}>
+          Scan History
+        </h1>
+        <p style={{ color: 'var(--gf-text-tertiary)', marginTop: 4, fontSize: 14 }}>
+          {scans.length} scan{scans.length !== 1 ? 's' : ''} total
+        </p>
+      </div>
 
       {scans.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-slate-500 mb-4">No scans yet.</p>
-          <Link href="/scan" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-all">
+        <div style={{
+          background: 'var(--gf-card)',
+          border: '1px dashed var(--gf-border)',
+          borderRadius: 16,
+          padding: '64px 20px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            width: 52, height: 52,
+            borderRadius: 14,
+            background: 'rgba(0,232,135,0.08)',
+            border: '1px solid rgba(0,232,135,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <ScanLine size={24} color="var(--gf-signal)" />
+          </div>
+          <h3 style={{ fontWeight: 600, color: 'var(--gf-text-primary)', marginBottom: 6 }}>No scans yet</h3>
+          <p style={{ fontSize: 13, color: 'var(--gf-text-tertiary)', marginBottom: 20 }}>
+            Your scan history will appear here after your first analysis.
+          </p>
+          <Link href="/scan" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 20px',
+            background: 'var(--gf-signal)',
+            color: '#060A07',
+            fontSize: 13, fontWeight: 700,
+            borderRadius: 10,
+            textDecoration: 'none',
+          }}>
+            <ScanLine size={15} />
             Scan Your First Resume
           </Link>
         </div>
       ) : (
-        <div className="rounded-xl border border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b border-white/10">
-              <tr className="text-xs text-slate-500 uppercase tracking-wider">
-                <th className="px-4 py-3 text-left">Target Role</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Overall</th>
-                <th className="px-4 py-3 text-left">ATS</th>
-                <th className="px-4 py-3 text-left">Keywords</th>
-                <th className="px-4 py-3 text-left">Impact</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left"></th>
+        <div style={{
+          background: 'var(--gf-card)',
+          border: '1px solid var(--gf-border)',
+          borderRadius: 16,
+          overflow: 'hidden',
+        }}>
+          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--gf-border)' }}>
+                {['Target Role', 'Date', 'Overall', 'ATS', 'Keywords', 'Impact', 'Status', ''].map(h => (
+                  <th key={h} style={{
+                    padding: '11px 16px',
+                    textAlign: 'left',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: 'var(--gf-text-tertiary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                  }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {scans.map(scan => (
-                <tr key={scan.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                  <td className="px-4 py-3 text-white">{scan.targetRole ?? 'General Scan'}</td>
-                  <td className="px-4 py-3 text-slate-500">{scan.createdAt ? new Date(scan.createdAt).toLocaleDateString() : '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${scoreColor(scan.overallScore)}`}>
+              {scans.map((scan, i) => (
+                <tr key={scan.id} style={{
+                  borderBottom: i < scans.length - 1 ? '1px solid rgba(30,56,40,0.5)' : 'none',
+                  transition: 'background 0.15s',
+                }}>
+                  <td style={{ padding: '13px 16px', fontWeight: 600, color: 'var(--gf-text-primary)' }}>
+                    {scan.targetRole ?? 'General Scan'}
+                  </td>
+                  <td style={{ padding: '13px 16px', color: 'var(--gf-text-tertiary)', fontSize: 12 }}>
+                    {scan.createdAt ? new Date(scan.createdAt).toLocaleDateString() : '—'}
+                  </td>
+                  <td style={{ padding: '13px 16px' }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center',
+                      padding: '2px 8px',
+                      borderRadius: 20,
+                      fontSize: 11, fontWeight: 700,
+                      fontFamily: 'var(--font-mono, monospace)',
+                      color: scoreColor(scan.overallScore),
+                      background: scan.overallScore
+                        ? `rgba(${scan.overallScore >= 80 ? '0,232,135' : scan.overallScore >= 60 ? '245,158,11' : '239,68,68'}, 0.1)`
+                        : 'rgba(42,74,54,0.3)',
+                      border: `1px solid rgba(${scan.overallScore && scan.overallScore >= 80 ? '0,232,135' : scan.overallScore && scan.overallScore >= 60 ? '245,158,11' : '239,68,68'}, 0.2)`,
+                    }}>
                       {scan.overallScore ?? '—'}
                     </span>
                   </td>
-                  <td className={`px-4 py-3 font-mono text-xs ${scan.atsScore && scan.atsScore >= 80 ? 'text-green-400' : scan.atsScore && scan.atsScore >= 60 ? 'text-amber-400' : 'text-red-400'}`}>{scan.atsScore ?? '—'}</td>
-                  <td className={`px-4 py-3 font-mono text-xs ${scan.keywordScore && scan.keywordScore >= 80 ? 'text-green-400' : 'text-slate-500'}`}>{scan.keywordScore ?? '—'}</td>
-                  <td className={`px-4 py-3 font-mono text-xs ${scan.impactScore && scan.impactScore >= 80 ? 'text-green-400' : 'text-slate-500'}`}>{scan.impactScore ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs ${scan.status === 'complete' ? 'text-green-400' : scan.status === 'error' ? 'text-red-400' : 'text-slate-500'}`}>
+                  {(['atsScore', 'keywordScore', 'impactScore'] as const).map(key => (
+                    <td key={key} style={{
+                      padding: '13px 16px',
+                      fontFamily: 'var(--font-mono, monospace)',
+                      fontSize: 12, fontWeight: 600,
+                      color: scoreColor(scan[key]),
+                    }}>
+                      {scan[key] ?? '—'}
+                    </td>
+                  ))}
+                  <td style={{ padding: '13px 16px' }}>
+                    <span style={{
+                      fontSize: 12, fontWeight: 500,
+                      color: scan.status === 'complete'
+                        ? 'var(--gf-score-high)'
+                        : scan.status === 'error'
+                        ? 'var(--gf-score-low)'
+                        : 'var(--gf-text-muted)',
+                    }}>
                       {scan.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td style={{ padding: '13px 16px' }}>
                     {scan.status === 'complete' && (
-                      <Link href={`/results/${scan.id}`} className="text-xs text-blue-400 hover:text-blue-300">
+                      <Link href={`/results/${scan.id}`} style={{
+                        fontSize: 12, fontWeight: 600,
+                        color: 'var(--gf-signal)',
+                        textDecoration: 'none',
+                      }}>
                         View →
                       </Link>
                     )}

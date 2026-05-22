@@ -46,12 +46,16 @@ export function UploadZone({ onSuccess }: UploadZoneProps) {
 
     xhr.onload = () => {
       setIsUploading(false);
-      if (xhr.status === 200) {
+      try {
         const data = JSON.parse(xhr.responseText);
-        onSuccess(data.resumeId, data.fileName);
-      } else {
-        const data = JSON.parse(xhr.responseText);
-        setError(data.error ?? 'Upload failed. Please try again.');
+        if (xhr.status === 200) {
+          onSuccess(data.resumeId, data.fileName);
+        } else {
+          setError(data.error ?? 'Upload failed. Please try again.');
+          setUploadedFile(null);
+        }
+      } catch {
+        setError('Upload failed. Please try again.');
         setUploadedFile(null);
       }
     };
@@ -72,7 +76,7 @@ export function UploadZone({ onSuccess }: UploadZoneProps) {
   }, [handleFiles]);
 
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div style={{ width: '100%' }}>
       <AnimatePresence mode="wait">
         {!uploadedFile ? (
           <motion.label
@@ -80,36 +84,61 @@ export function UploadZone({ onSuccess }: UploadZoneProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`relative flex flex-col items-center justify-center w-full min-h-64 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 ${
-              isDragging
-                ? 'border-blue-500 bg-blue-500/10'
-                : 'border-white/20 bg-white/5 hover:border-blue-500/50 hover:bg-white/8'
-            }`}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              minHeight: 220,
+              borderRadius: 16,
+              border: `2px dashed ${isDragging ? 'var(--gf-signal)' : 'var(--gf-border)'}`,
+              background: isDragging ? 'rgba(0,232,135,0.05)' : 'var(--gf-card)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: isDragging ? '0 0 24px rgba(0,232,135,0.15)' : 'none',
+            }}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={onDrop}
           >
             <input
               type="file"
-              className="sr-only"
+              style={{ display: 'none' }}
               accept=".pdf,.docx,.md"
               onChange={(e) => handleFiles(e.target.files)}
             />
-            <div className="flex flex-col items-center gap-4 p-8 text-center">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 28 }}>
               <motion.div
-                animate={isDragging ? { scale: 1.1 } : { scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center"
+                animate={isDragging ? { scale: 1.12 } : { scale: 1 }}
+                whileHover={{ scale: 1.06 }}
+                style={{
+                  width: 60, height: 60,
+                  borderRadius: 16,
+                  background: 'rgba(0,232,135,0.08)',
+                  border: '1px solid rgba(0,232,135,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
               >
-                <Upload className="w-8 h-8 text-blue-400" />
+                <Upload size={28} color="var(--gf-signal)" />
               </motion.div>
-              <div>
-                <p className="text-white font-semibold text-lg mb-1">Drop your resume here</p>
-                <p className="text-slate-500 text-sm">PDF, DOCX, or Markdown · Max 4 MB</p>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontWeight: 600, fontSize: 16, color: 'var(--gf-text-primary)', marginBottom: 4 }}>
+                  Drop your resume here
+                </p>
+                <p style={{ fontSize: 13, color: 'var(--gf-text-tertiary)' }}>PDF, DOCX, or Markdown · Max 4 MB</p>
               </div>
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 8 }}>
                 {['PDF', 'DOCX', 'MD'].map(type => (
-                  <span key={type} className="text-xs border border-white/10 rounded-full px-3 py-1 text-slate-500 font-mono">
+                  <span key={type} style={{
+                    fontSize: 11,
+                    fontFamily: 'var(--font-mono, monospace)',
+                    border: '1px solid var(--gf-border)',
+                    borderRadius: 20,
+                    padding: '3px 10px',
+                    color: 'var(--gf-text-tertiary)',
+                    background: 'var(--gf-elevated)',
+                  }}>
                     {type}
                   </span>
                 ))}
@@ -121,40 +150,57 @@ export function UploadZone({ onSuccess }: UploadZoneProps) {
             key="uploaded"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col gap-3 p-6 rounded-2xl border border-green-500/30 bg-green-500/10"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              padding: 20,
+              borderRadius: 14,
+              border: isUploading
+                ? '1px solid rgba(0,232,135,0.2)'
+                : '1px solid rgba(0,232,135,0.3)',
+              background: isUploading
+                ? 'rgba(0,232,135,0.04)'
+                : 'rgba(0,232,135,0.06)',
+            }}
           >
-            <div className="flex items-center gap-4">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
               >
                 {isUploading ? (
-                  <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                  <Loader2 size={28} color="var(--gf-signal)" style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
-                  <CheckCircle className="w-8 h-8 text-green-400" />
+                  <CheckCircle size={28} color="var(--gf-signal)" />
                 )}
               </motion.div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">{uploadedFile.name}</p>
-                <p className="text-xs text-slate-500">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 600, color: 'var(--gf-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {uploadedFile.name}
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--gf-text-tertiary)' }}>
                   {uploadedFile.size} · {isUploading ? `Uploading ${uploadProgress}%` : 'Upload complete'}
                 </p>
               </div>
               {!isUploading && (
                 <button
                   onClick={() => { setUploadedFile(null); setUploadProgress(0); }}
-                  className="text-slate-500 hover:text-white transition-colors"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--gf-text-tertiary)', padding: 4, borderRadius: 6,
+                  }}
                 >
-                  <X className="w-4 h-4" />
+                  <X size={16} />
                 </button>
               )}
             </div>
 
             {isUploading && (
-              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+              <div style={{ height: 3, background: 'var(--gf-elevated)', borderRadius: 2, overflow: 'hidden' }}>
                 <motion.div
-                  className="h-full bg-blue-500 rounded-full"
+                  style={{ height: '100%', background: 'var(--gf-signal)', borderRadius: 2 }}
                   initial={{ width: 0 }}
                   animate={{ width: `${uploadProgress}%` }}
                   transition={{ ease: 'easeOut' }}
@@ -169,7 +215,7 @@ export function UploadZone({ onSuccess }: UploadZoneProps) {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mt-3 text-sm text-red-400 text-center"
+          style={{ marginTop: 10, fontSize: 13, color: 'var(--gf-score-low)', textAlign: 'center' }}
         >
           {error}
         </motion.p>

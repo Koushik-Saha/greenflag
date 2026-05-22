@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function analyzeGhostJob(jobDescription: string): Promise<GhostJobAnalysis> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: GHOST_JOB_PROMPT,
     generationConfig: { maxOutputTokens: 1500, temperature: 0.2 },
   });

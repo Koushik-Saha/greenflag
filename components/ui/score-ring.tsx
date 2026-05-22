@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import { useScoreAnimation } from '@/hooks/useScoreAnimation';
 
 function scoreColor(score: number): string {
-  if (score >= 80) return '#22c55e';
-  if (score >= 60) return '#f59e0b';
-  return '#ef4444';
+  if (score >= 80) return '#00E887';
+  if (score >= 60) return '#F59E0B';
+  return '#EF4444';
+}
+
+function scoreGrade(score: number): string {
+  if (score >= 80) return 'Excellent';
+  if (score >= 60) return 'Good';
+  if (score >= 40) return 'Needs Work';
+  return 'Poor';
 }
 
 interface ScoreRingProps {
@@ -18,26 +24,27 @@ interface ScoreRingProps {
   className?: string;
 }
 
-export function ScoreRing({ score, size = 120, strokeWidth = 10, label, animated = true, className }: ScoreRingProps) {
-  const animatedScore = useScoreAnimation(animated ? score : 0, 1500);
+export function ScoreRing({ score, size = 120, strokeWidth = 8, label, animated = true, className }: ScoreRingProps) {
+  const animatedScore = useScoreAnimation(animated ? score : 0, 1400);
   const displayScore = animated ? animatedScore : score;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (displayScore / 100) * circumference;
   const color = scoreColor(score);
-
-  const grade = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : 'Poor';
+  const glowFilter = score >= 80 ? 'glow-high' : score >= 60 ? 'glow-mid' : 'glow-low';
 
   return (
-    <div className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
+    <div className={`relative inline-flex items-center justify-center ${className ?? ''}`} style={{ width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} className="-rotate-90">
         <defs>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-            <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          <filter id={`${glowFilter}-${size}`}>
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
         </defs>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth} />
+        {/* Track */}
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#1E3828" strokeWidth={strokeWidth} />
+        {/* Progress */}
         <circle
           cx={size / 2} cy={size / 2} r={radius}
           fill="none"
@@ -46,14 +53,24 @@ export function ScoreRing({ score, size = 120, strokeWidth = 10, label, animated
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          filter="url(#glow)"
-          style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
+          filter={`url(#${glowFilter}-${size})`}
+          style={{ transition: 'stroke-dashoffset 0.08s linear' }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono font-bold" style={{ fontSize: size * 0.22, color }}>{displayScore}</span>
-        {label && <span className="text-xs text-muted-foreground mt-0.5">{label}</span>}
-        {!label && <span className="text-xs text-muted-foreground mt-0.5">{grade}</span>}
+        <span style={{
+          fontFamily: 'var(--font-mono, monospace)',
+          fontSize: size * 0.26,
+          fontWeight: 700,
+          color,
+          lineHeight: 1,
+          letterSpacing: '-1px',
+        }}>
+          {displayScore}
+        </span>
+        <span style={{ fontSize: Math.max(9, size * 0.1), color: '#3D6B50', marginTop: 3, fontWeight: 500 }}>
+          {label ?? scoreGrade(score)}
+        </span>
       </div>
     </div>
   );

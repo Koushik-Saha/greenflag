@@ -10,10 +10,10 @@ interface ScoreCardProps {
   analysis: ScoreAnalysis;
 }
 
-const SEVERITY_COLOR: Record<string, string> = {
-  high: 'text-red-400 border-red-400/20 bg-red-400/10',
-  medium: 'text-amber-400 border-amber-400/20 bg-amber-400/10',
-  low: 'text-blue-400 border-blue-400/20 bg-blue-400/10',
+const SEVERITY_COLOR: Record<string, { text: string; border: string; bg: string }> = {
+  high:   { text: 'var(--gf-score-low)',  border: 'rgba(239,68,68,0.25)',   bg: 'rgba(239,68,68,0.06)' },
+  medium: { text: 'var(--gf-score-mid)',  border: 'rgba(245,158,11,0.25)',  bg: 'rgba(245,158,11,0.06)' },
+  low:    { text: '#A78BFA',              border: 'rgba(167,139,250,0.25)', bg: 'rgba(167,139,250,0.06)' },
 };
 
 export function ScoreCard({ name, analysis }: ScoreCardProps) {
@@ -21,24 +21,31 @@ export function ScoreCard({ name, analysis }: ScoreCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
     >
-      <div className="flex items-center gap-4">
-        <ScoreRing score={analysis.score} size={80} animated />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <ScoreRing score={analysis.score} size={76} animated />
         <div>
-          <h2 className="text-xl font-bold text-white">{name}</h2>
-          <p className="text-sm text-slate-400 mt-1">{analysis.summary}</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--gf-text-primary)', letterSpacing: '-0.3px' }}>{name}</h2>
+          <p style={{ fontSize: 13, color: 'var(--gf-text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>{analysis.summary}</p>
         </div>
       </div>
 
       {analysis.highlights.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">What's Working</h3>
-          <div className="space-y-2">
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--gf-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            What&apos;s Working
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {analysis.highlights.map((h, i) => (
-              <div key={i} className="flex gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-slate-300">{h}</p>
+              <div key={i} style={{
+                display: 'flex', gap: 10, padding: '10px 12px',
+                borderRadius: 10,
+                background: 'rgba(0,232,135,0.06)',
+                border: '1px solid rgba(0,232,135,0.2)',
+              }}>
+                <CheckCircle size={15} color="var(--gf-score-high)" style={{ marginTop: 1, flexShrink: 0 }} />
+                <p style={{ fontSize: 13, color: 'var(--gf-text-secondary)', lineHeight: 1.5 }}>{h}</p>
               </div>
             ))}
           </div>
@@ -47,30 +54,51 @@ export function ScoreCard({ name, analysis }: ScoreCardProps) {
 
       {analysis.issues.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Issues Found</h3>
-          <div className="space-y-2">
-            {analysis.issues.map((issue, i) => (
-              <div key={i} className={`flex gap-3 p-3 rounded-lg border ${SEVERITY_COLOR[issue.severity]}`}>
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm">{issue.text}</p>
-                  {issue.location && <p className="text-xs opacity-70 mt-0.5">{issue.location}</p>}
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--gf-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            Issues Found
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {analysis.issues.map((issue, i) => {
+              const s = SEVERITY_COLOR[issue.severity] ?? SEVERITY_COLOR.medium;
+              return (
+                <div key={i} style={{
+                  display: 'flex', gap: 10, padding: '10px 12px',
+                  borderRadius: 10,
+                  background: s.bg,
+                  border: `1px solid ${s.border}`,
+                }}>
+                  <AlertTriangle size={15} color={s.text} style={{ marginTop: 1, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, color: 'var(--gf-text-primary)', lineHeight: 1.5 }}>{issue.text}</p>
+                    {issue.location && (
+                      <p style={{ fontSize: 11, color: 'var(--gf-text-tertiary)', marginTop: 2 }}>{issue.location}</p>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: s.text, opacity: 0.8, textTransform: 'uppercase', flexShrink: 0 }}>
+                    {issue.severity}
+                  </span>
                 </div>
-                <span className="ml-auto text-xs uppercase font-mono opacity-60">{issue.severity}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
       {analysis.suggestions.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">How to Fix</h3>
-          <div className="space-y-2">
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--gf-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            How to Fix
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {analysis.suggestions.map((s, i) => (
-              <div key={i} className="flex gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <Lightbulb className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-slate-300">{s}</p>
+              <div key={i} style={{
+                display: 'flex', gap: 10, padding: '10px 12px',
+                borderRadius: 10,
+                background: 'rgba(167,139,250,0.06)',
+                border: '1px solid rgba(167,139,250,0.2)',
+              }}>
+                <Lightbulb size={15} color="#A78BFA" style={{ marginTop: 1, flexShrink: 0 }} />
+                <p style={{ fontSize: 13, color: 'var(--gf-text-secondary)', lineHeight: 1.5 }}>{s}</p>
               </div>
             ))}
           </div>

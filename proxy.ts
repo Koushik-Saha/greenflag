@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const PROTECTED_PATHS = ['/dashboard', '/scan', '/results', '/history', '/settings', '/admin'];
 const COOKIE_NAME = 'rs_session';
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isProtected = PROTECTED_PATHS.some(p => pathname.startsWith(p));

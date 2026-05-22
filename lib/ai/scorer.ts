@@ -1,126 +1,88 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
-  ATS_PARSE_PROMPT,
-  KEYWORD_MATCH_PROMPT,
-  RED_FLAG_PROMPT,
-  IMPACT_PROMPT,
-  READABILITY_PROMPT,
-  BIAS_RISK_PROMPT,
-  AI_DETECTION_PROMPT,
-  OPT_VISA_PROMPT,
-  SALARY_POSITION_PROMPT,
-  TRAJECTORY_PROMPT,
-} from './prompts';
-import type { ScoreAnalysis, ImpactAnalysis, BiasAnalysis, SalaryAnalysis } from '@/types';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-const SCORE_WEIGHTS = {
-  atsScore: 0.15,
-  keywordScore: 0.15,
-  impactScore: 0.15,
-  redFlagScore: 0.10,
-  readabilityScore: 0.10,
-  biasRiskScore: 0.10,
-  aiDetectionScore: 0.10,
-  trajectoryScore: 0.08,
-  salaryPositionScore: 0.07,
-  optVisaScore: 0.00,
-};
-
-async function callGemini(systemPrompt: string, userMessage: string): Promise<unknown> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    systemInstruction: systemPrompt,
-    generationConfig: { maxOutputTokens: 2000, temperature: 0.3 },
-  });
-
-  const result = await model.generateContent(userMessage);
-  const text = result.response.text();
-  const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(cleaned);
-}
+  scoreATS,
+  scoreKeywords,
+  scoreRedFlags,
+  scoreImpact,
+  scoreReadability,
+  scoreBiasRisk,
+  scoreAIDetection,
+  scoreOptVisa,
+  scoreSalaryPosition,
+  scoreTrajectory,
+} from './rule-based-scorer';
 
 export interface ScorerContext {
   resumeText: string;
   jobDescription?: string;
   targetRole?: string;
+  targetCompany?: string;
   targetIndustry?: string;
   workAuthorization?: string;
+  targetSalary?: number;
   onProgress?: (scoreName: string, status: 'analyzing' | 'complete', value?: number, analysis?: unknown) => void;
 }
 
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
 export async function runFullScan(ctx: ScorerContext) {
-  const { resumeText, jobDescription, targetRole, targetIndustry, workAuthorization, onProgress } = ctx;
+  const { resumeText, jobDescription, targetRole, workAuthorization, onProgress } = ctx;
 
   const emit = (name: string, status: 'analyzing' | 'complete', value?: number, analysis?: unknown) => {
     onProgress?.(name, status, value, analysis);
   };
 
-  const runScore = async <T>(name: string, prompt: string, userMsg: string): Promise<T> => {
+  const run = async <T>(name: string, fn: () => T): Promise<T> => {
     emit(name, 'analyzing');
-    const result = await callGemini(prompt, userMsg) as T;
+    await sleep(300);
+    const result = fn();
     const score = (result as { score?: number }).score;
     emit(name, 'complete', score, result);
     return result;
   };
 
-  const resumeMsg = `Resume text:\n\n${resumeText}`;
-  const jdContext = jobDescription ? `\n\nJob Description:\n${jobDescription}` : '';
-  const roleContext = targetRole ? `\n\nTarget Role: ${targetRole}` : '';
-  const industryContext = targetIndustry ? `\n\nTarget Industry: ${targetIndustry}` : '';
-
-  const [atsAnalysis, redFlagAnalysis, impactAnalysis, readabilityAnalysis, biasAnalysis, aiDetectionAnalysis, trajectoryAnalysis] = await Promise.all([
-    runScore<ScoreAnalysis>('ats', ATS_PARSE_PROMPT, resumeMsg),
-    runScore<ScoreAnalysis>('redFlag', RED_FLAG_PROMPT, resumeMsg),
-    runScore<ImpactAnalysis>('impact', IMPACT_PROMPT, resumeMsg),
-    runScore<ScoreAnalysis>('readability', READABILITY_PROMPT, resumeMsg),
-    runScore<BiasAnalysis>('bias', BIAS_RISK_PROMPT, resumeMsg),
-    runScore<ScoreAnalysis>('aiDetection', AI_DETECTION_PROMPT, resumeMsg),
-    runScore<ScoreAnalysis>('trajectory', TRAJECTORY_PROMPT, resumeMsg),
-  ]);
-
-  const [keywordAnalysis, optVisaAnalysis, salaryAnalysis] = await Promise.all([
-    runScore<ScoreAnalysis>('keyword', KEYWORD_MATCH_PROMPT, resumeMsg + jdContext),
-    runScore<ScoreAnalysis>('optVisa', OPT_VISA_PROMPT, resumeMsg + roleContext + industryContext),
-    runScore<SalaryAnalysis>('salary', SALARY_POSITION_PROMPT, resumeMsg + roleContext + industryContext),
-  ]);
+  const atsAnalysis         = await run('ats',          () => scoreATS(resumeText));
+  const keywordAnalysis     = await run('keyword',      () => scoreKeywords(resumeText, jobDescription));
+  const redFlagAnalysis     = await run('redFlag',      () => scoreRedFlags(resumeText));
+  const impactAnalysis      = await run('impact',       () => scoreImpact(resumeText));
+  const readabilityAnalysis = await run('readability',  () => scoreReadability(resumeText));
+  const biasAnalysis        = await run('bias',         () => scoreBiasRisk(resumeText));
+  const aiDetectionAnalysis = await run('aiDetection',  () => scoreAIDetection(resumeText));
+  const optVisaAnalysis     = await run('optVisa',      () => scoreOptVisa(resumeText, workAuthorization, targetRole));
+  const salaryAnalysis      = await run('salary',       () => scoreSalaryPosition(resumeText, targetRole));
+  const trajectoryAnalysis  = await run('trajectory',   () => scoreTrajectory(resumeText));
 
   const isVisaUser = workAuthorization === 'opt' || workAuthorization === 'h1b';
-  const weights = { ...SCORE_WEIGHTS };
-  if (isVisaUser) {
-    weights.optVisaScore = 0.10;
-    weights.atsScore = 0.10;
-    weights.keywordScore = 0.10;
-  }
-
-  const overallScore = Math.round(
-    atsAnalysis.score * weights.atsScore +
-    (keywordAnalysis.score || 50) * weights.keywordScore +
-    impactAnalysis.score * weights.impactScore +
-    redFlagAnalysis.score * weights.redFlagScore +
-    readabilityAnalysis.score * weights.readabilityScore +
-    biasAnalysis.score * weights.biasRiskScore +
-    aiDetectionAnalysis.score * weights.aiDetectionScore +
-    trajectoryAnalysis.score * weights.trajectoryScore +
-    salaryAnalysis.score * weights.salaryPositionScore +
-    (isVisaUser ? optVisaAnalysis.score * weights.optVisaScore : 0),
+  const overallScore = calculateOverallScore(
+    {
+      atsScore:            atsAnalysis.score,
+      keywordScore:        keywordAnalysis.score,
+      redFlagScore:        redFlagAnalysis.score,
+      impactScore:         impactAnalysis.score,
+      readabilityScore:    readabilityAnalysis.score,
+      biasRiskScore:       biasAnalysis.score,
+      aiDetectionScore:    aiDetectionAnalysis.score,
+      optVisaScore:        optVisaAnalysis.score,
+      salaryPositionScore: salaryAnalysis.score,
+      trajectoryScore:     trajectoryAnalysis.score,
+    },
+    !!jobDescription,
+    isVisaUser,
   );
 
   emit('overall', 'complete', overallScore);
 
   return {
     overallScore,
-    atsScore: atsAnalysis.score,
-    keywordScore: keywordAnalysis.score,
-    redFlagScore: redFlagAnalysis.score,
-    impactScore: impactAnalysis.score,
-    readabilityScore: readabilityAnalysis.score,
-    biasRiskScore: biasAnalysis.score,
-    aiDetectionScore: aiDetectionAnalysis.score,
-    optVisaScore: optVisaAnalysis.score,
+    atsScore:            atsAnalysis.score,
+    keywordScore:        keywordAnalysis.score,
+    redFlagScore:        redFlagAnalysis.score,
+    impactScore:         impactAnalysis.score,
+    readabilityScore:    readabilityAnalysis.score,
+    biasRiskScore:       biasAnalysis.score,
+    aiDetectionScore:    aiDetectionAnalysis.score,
+    optVisaScore:        optVisaAnalysis.score,
     salaryPositionScore: salaryAnalysis.score,
-    trajectoryScore: trajectoryAnalysis.score,
+    trajectoryScore:     trajectoryAnalysis.score,
     atsAnalysis,
     keywordAnalysis,
     redFlagAnalysis,
@@ -131,5 +93,54 @@ export async function runFullScan(ctx: ScorerContext) {
     optVisaAnalysis,
     salaryAnalysis,
     trajectoryAnalysis,
+    ghostJobAnalysis: undefined,
   };
+}
+
+function calculateOverallScore(
+  scores: {
+    atsScore: number;
+    keywordScore: number;
+    redFlagScore: number;
+    impactScore: number;
+    readabilityScore: number;
+    biasRiskScore: number;
+    aiDetectionScore: number;
+    optVisaScore: number;
+    salaryPositionScore: number;
+    trajectoryScore: number;
+  },
+  hasJD: boolean,
+  isVisaUser: boolean,
+): number {
+  let total = 0;
+
+  // Base weights
+  total += scores.atsScore        * (hasJD ? 0.15 : 0.20);
+  total += scores.keywordScore    * (hasJD ? 0.15 : 0);
+  total += scores.redFlagScore    * 0.10;
+  total += scores.impactScore     * (hasJD ? 0.15 : 0.20);
+  total += scores.readabilityScore * 0.10;
+  total += scores.biasRiskScore   * 0.05;
+  total += scores.aiDetectionScore * 0.10;
+  total += scores.trajectoryScore * 0.10;
+
+  // Conditional: OPT/Visa (10%) — redistribute to ATS+Impact for non-visa
+  if (isVisaUser) {
+    total += scores.optVisaScore * 0.10;
+  } else {
+    total += scores.atsScore    * 0.05;
+    total += scores.impactScore * 0.05;
+  }
+
+  // Conditional: Salary (10%) — always included
+  total += scores.salaryPositionScore * 0.10;
+
+  // If no JD, keyword weight (15%) was zeroed — redistribute to ATS+Impact
+  if (!hasJD) {
+    total += scores.atsScore    * 0.075;
+    total += scores.impactScore * 0.075;
+  }
+
+  return Math.round(Math.min(100, Math.max(0, total)));
 }

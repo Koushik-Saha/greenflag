@@ -19,7 +19,7 @@ export async function rewriteBullet(params: {
   const { originalBullet, targetRole, targetIndustry } = params;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: REWRITE_SYSTEM,
     generationConfig: { maxOutputTokens: 300, temperature: 0.4 },
   });
@@ -46,7 +46,7 @@ export async function analyzeBulletStrength(bullet: string): Promise<{
   missingElements: string[];
 }> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: 'Analyze resume bullet strength. Return ONLY valid JSON.',
     generationConfig: { maxOutputTokens: 300, temperature: 0.1 },
   });

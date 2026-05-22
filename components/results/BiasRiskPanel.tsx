@@ -10,23 +10,37 @@ interface BiasRiskPanelProps {
 
 export function BiasRiskPanel({ analysis }: BiasRiskPanelProps) {
   return (
-    <div className="space-y-6">
-      <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-        <div className="flex gap-3">
-          <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-slate-300">
-            These suggestions help you navigate imperfect hiring systems. Your identity is not the problem — the system is. All fixes are optional and yours to choose.
-          </p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{
+        padding: '12px 14px',
+        borderRadius: 10,
+        background: 'rgba(167,139,250,0.06)',
+        border: '1px solid rgba(167,139,250,0.2)',
+        display: 'flex', gap: 12,
+      }}>
+        <Info size={17} color="#A78BFA" style={{ flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: 13, color: 'var(--gf-text-secondary)', lineHeight: 1.6 }}>
+          These suggestions help you navigate imperfect hiring systems. Your identity is not the problem — the system is. All fixes are optional and yours to choose.
+        </p>
       </div>
 
       <div>
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Potential Screening Friction Points</h3>
-        <div className="space-y-4">
+        <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--gf-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>
+          Potential Screening Friction Points
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {analysis.risks.length === 0 ? (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-              <Shield className="w-5 h-5 text-green-400" />
-              <p className="text-sm text-slate-300">No significant bias risk signals detected. Your resume is well-positioned.</p>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 16px',
+              borderRadius: 12,
+              background: 'rgba(0,232,135,0.06)',
+              border: '1px solid rgba(0,232,135,0.2)',
+            }}>
+              <Shield size={18} color="var(--gf-score-high)" />
+              <p style={{ fontSize: 13, color: 'var(--gf-text-secondary)' }}>
+                No significant bias risk signals detected. Your resume is well-positioned.
+              </p>
             </div>
           ) : (
             analysis.risks.map((risk, i) => (
@@ -35,13 +49,26 @@ export function BiasRiskPanel({ analysis }: BiasRiskPanelProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-3"
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  border: '1px solid var(--gf-border)',
+                  background: 'var(--gf-card)',
+                  display: 'flex', flexDirection: 'column', gap: 10,
+                }}
               >
-                <p className="text-sm font-medium text-white">{risk.signal}</p>
-                <p className="text-xs text-slate-500">{risk.reason}</p>
-                <div className="p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                  <p className="text-xs text-slate-400 mb-1 uppercase tracking-wider font-semibold">Optional neutralization</p>
-                  <p className="text-sm text-slate-300">{risk.neutralization}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--gf-text-primary)' }}>{risk.signal}</p>
+                <p style={{ fontSize: 12, color: 'var(--gf-text-tertiary)', lineHeight: 1.5 }}>{risk.reason}</p>
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(167,139,250,0.06)',
+                  border: '1px solid rgba(167,139,250,0.2)',
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
+                    Optional neutralization
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--gf-text-secondary)', lineHeight: 1.5 }}>{risk.neutralization}</p>
                 </div>
               </motion.div>
             ))
